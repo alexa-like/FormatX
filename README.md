@@ -22,7 +22,7 @@ AI-powered resume and cover letter builder that tailors applications to specific
 | Database | MongoDB Atlas | Free (512MB) |
 | AI Models | OpenRouter | Pay-per-use (~$0.02/resume) |
 | Auth | NextAuth.js | Free |
-| Payments | Stripe | Free until revenue |
+| Payments | Telegram Stars | Free (Telegram handles payments) |
 | Hosting | Render (Web Service) | Free |
 | Keep-Alive | Render (Cron Service) | Free |
 | CDN | Cloudflare | Free |
@@ -45,7 +45,7 @@ AI-powered resume and cover letter builder that tailors applications to specific
 - [ ] Resume templates (3-5 designs)
 - [ ] Job description parser
 - [ ] History of all resumes
-- [ ] Stripe subscription integration
+- [ ] Telegram Stars subscription integration
 
 ### Phase 3 (Month 2)
 - [ ] LinkedIn profile optimizer
@@ -163,8 +163,8 @@ POST   /api/resume/export/pdf    - Export resume as PDF
 POST   /api/cover-letter/create  - Generate cover letter
 GET    /api/cover-letter/list    - List user's cover letters
 
-POST   /api/stripe/checkout      - Create Stripe checkout
-POST   /api/stripe/webhook       - Handle Stripe webhooks
+POST   /api/telegram/webhook     - Handle Telegram Stars payments
+GET    /api/telegram/verify      - Verify payment status
 ```
 
 ---
@@ -226,9 +226,9 @@ NEXTAUTH_URL=https://resume-builder.onrender.com
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 
-# Stripe (for payments)
-STRIPE_SECRET_KEY=sk_live_xxxxxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxx
+# Telegram Bot (for payments)
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+TELEGRAM_WEBHOOK_SECRET=your-webhook-secret
 
 # Resend (for email)
 RESEND_API_KEY=re_xxxxxxxx
@@ -361,9 +361,9 @@ resume-builder/
 │   │       │   └── ats-check/route.ts
 │   │       ├── cover-letter/
 │   │       │   └── create/route.ts
-│   │       └── stripe/
-│   │           ├── checkout/route.ts
-│   │           └── webhook/route.ts
+│   │       └── telegram/
+│   │           ├── webhook/route.ts
+│   │           └── verify/route.ts
 │   ├── components/
 │   │   ├── ui/
 │   │   ├── ResumeBuilder.tsx
@@ -373,7 +373,7 @@ resume-builder/
 │   ├── lib/
 │   │   ├── mongodb.ts
 │   │   ├── openrouter.ts
-│   │   ├── stripe.ts
+│   │   ├── telegram.ts
 │   │   └── auth.ts
 │   ├── models/
 │   │   ├── User.ts
@@ -409,7 +409,7 @@ resume-builder/
 - **NextAuth.js** - Authentication
 - **Puppeteer** - PDF generation (or @react-pdf/renderer)
 - **Zod** - Schema validation
-- **Stripe** - Payments
+- **Telegram Bot API** - Payments via Telegram Stars
 
 ---
 
