@@ -19,6 +19,10 @@ services:
           property: host
       - key: NODE_ENV
         value: production
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
 
   # Cron Job - Keep Awake Ping (every 5 minutes)
   - type: cron
