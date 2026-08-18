@@ -1,0 +1,33 @@
+services:
+  # Main App - Full Stack Next.js
+  - type: web
+    name: resume-builder
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_URL
+        fromService:
+          name: resume-builder
+          property: host
+      - key: NODE_ENV
+        value: production
+
+  # Cron Job - Keep Awake Ping (every 5 minutes)
+  - type: cron
+    name: ping-service
+    runtime: node
+    schedule: "*/5 * * * *"
+    startCommand: node ping.js
+    envVars:
+      - key: PING_URL
+        fromService:
+          name: resume-builder
+          property: host
