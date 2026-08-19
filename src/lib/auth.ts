@@ -24,15 +24,13 @@ export const authOptions: NextAuthOptions = {
         const { db } = await connectToDatabase();
         const user = await db.collection('users').findOne({ email: credentials.email });
 
-        if (!user) {
+        if (!user || !user.password) {
           return null;
         }
 
-        if (user.password) {
-          const isValid = await bcrypt.compare(credentials.password, user.password);
-          if (!isValid) {
-            return null;
-          }
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
+          return null;
         }
 
         return {
