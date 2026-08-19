@@ -264,20 +264,59 @@ NEXT_PUBLIC_APP_URL=https://resume-builder.onrender.com
 
 ---
 
-## Deployment (Render Blueprint)
+## Deployment
 
-### Prerequisites
-- GitHub repository connected to Render
-- MongoDB Atlas connection string
-- OpenRouter API key
+### Option 1: Vercel (Recommended - Free, No Card)
 
-### Step 1: Connect Repo to Render
+#### Step 1: Install Vercel CLI
+```bash
+npm i -g vercel
+```
+
+#### Step 2: Deploy
+```bash
+cd resume-builder
+vercel
+```
+
+#### Step 3: Add Environment Variables
+Go to Vercel Dashboard → Your Project → Settings → Environment Variables:
+
+```
+MONGODB_URI=mongodb+srv://your-connection-string
+OPENROUTER_API_KEY=sk-or-your-key
+NEXTAUTH_SECRET=your-random-secret
+NEXTAUTH_URL=https://your-app.vercel.app
+GOOGLE_CLIENT_ID=your-google-id
+GOOGLE_CLIENT_SECRET=your-google-secret
+TELEGRAM_BOT_TOKEN=your-telegram-token
+TELEGRAM_WEBHOOK_SECRET=your-webhook-secret
+```
+
+#### Step 4: Deploy to Production
+```bash
+vercel --prod
+```
+
+#### Vercel Features
+- ✅ No credit card required
+- ✅ Automatic HTTPS
+- ✅ Global CDN
+- ✅ Serverless backend (API routes)
+- ✅ Built-in cron jobs (health check every 5 min)
+- ✅ Preview deployments on PRs
+
+---
+
+### Option 2: Render Blueprint
+
+#### Step 1: Connect Repo to Render
 1. Go to [Render Dashboard](https://dashboard.render.com)
 2. Click **New** → **Blueprint**
 3. Connect your GitHub repo `alexa-like/FormatX`
 4. Render will detect `render.yaml` automatically
 
-### Step 2: Set Environment Variables
+#### Step 2: Set Environment Variables
 In Render Dashboard → resume-builder service → Environment:
 
 ```
@@ -286,27 +325,19 @@ OPENROUTER_API_KEY=sk-or-your-key
 NEXTAUTH_SECRET=your-random-secret
 GOOGLE_CLIENT_ID=your-google-id
 GOOGLE_CLIENT_SECRET=your-google-secret
-STRIPE_SECRET_KEY=sk-your-stripe-key
-STRIPE_WEBHOOK_SECRET=whsec-your-webhook-secret
-RESEND_API_KEY=re_your-resend-key
+TELEGRAM_BOT_TOKEN=your-telegram-token
+TELEGRAM_WEBHOOK_SECRET=your-webhook-secret
 ```
 
-### Step 3: Deploy
+#### Step 3: Deploy
 Click **Deploy** → Render will:
 1. Build the Next.js app
 2. Start the web service
-3. Start the cron ping service (every 5 minutes)
 
-### Step 4: Verify
-- Web Service: `https://resume-builder.onrender.com`
-- Health Check: `https://resume-builder.onrender.com/api/health`
-- Cron Logs: Check Render dashboard → ping-service → Logs
-
-### How the Keep-Alive Works
-- **Cron Service** runs every 5 minutes
-- Hits `/api/health` endpoint
-- Prevents free tier from sleeping
-- Zero downtime, always responsive
+#### Render Notes
+- Free tier sleeps after 15 min inactivity
+- Uses `render.yaml` for config
+- `ping.js` available for keep-alive cron
 
 ---
 
