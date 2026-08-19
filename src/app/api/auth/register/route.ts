@@ -2,7 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { connectToDatabase } from '@/lib/mongodb';
+import { sendVerificationEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +35,8 @@ export async function POST(request: NextRequest) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const result = await db.collection('users').insertOne({
       name,
@@ -40,9 +44,18 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       plan: 'free',
       creditsRemaining: 3,
+      emailVerified: null,
+      verificationToken,
+      verificationExpires,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
+    try {
+      await sendVerificationEmail(email, verificationToken);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+    }
 
     return NextResponse.json({
       success: true,
