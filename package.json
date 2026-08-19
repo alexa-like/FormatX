@@ -13,7 +13,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "next-auth": "^4.24.0",
-    "@next-auth/mongodb-adapter": "^1.1.0",
     "mongodb": "^5.9.0",
     "zod": "^3.23.0",
     "react-icons": "^5.2.0",
