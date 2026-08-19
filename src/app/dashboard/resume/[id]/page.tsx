@@ -1,5 +1,9 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
+
+
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -12,7 +16,7 @@ export default function EditResumePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const [resume, setResume] = useState(null);
+  const [resume, setResume] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [jobDescription, setJobDescription] = useState('');
   const [optimizing, setOptimizing] = useState(false);
