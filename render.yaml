@@ -16,6 +16,7 @@ services:
       - key: NEXTAUTH_URL
         fromService:
           name: resume-builder
+          type: web
           property: host
       - key: NODE_ENV
         value: production
@@ -34,4 +35,5 @@ services:
       - key: PING_URL
         fromService:
           name: resume-builder
+          type: web
           property: host
