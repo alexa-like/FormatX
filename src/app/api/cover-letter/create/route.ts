@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -31,7 +33,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
     }
 
-    // Check usage limits
     const user = await db.collection('users').findOne({
       _id: new ObjectId((session.user as any).id),
     });
@@ -43,30 +44,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Format resume content for AI
-    const resumeContent = `
-Name: ${resume.personalInfo.fullName}
-Email: ${resume.personalInfo.email}
-Phone: ${resume.personalInfo.phone}
-Location: ${resume.personalInfo.location}
-Summary: ${resume.personalInfo.summary}
+    const resumeContent = [
+      `Name: ${resume.personalInfo.fullName}`,
+      `Email: ${resume.personalInfo.email}`,
+      `Phone: ${resume.personalInfo.phone}`,
+      `Location: ${resume.personalInfo.location}`,
+      `Summary: ${resume.personalInfo.summary}`,
+      '',
+      'Experience:',
+      ...resume.experience.map((exp: any) => [
+        `- ${exp.position} at ${exp.company} (${exp.startDate} - ${exp.endDate})`,
+        `  ${exp.description}`,
+        `  Achievements: ${exp.achievements.join(', ')}`,
+      ]).flat(),
+      '',
+      'Education:',
+      ...resume.education.map((edu: any) => [
+        `- ${edu.degree} in ${edu.field} from ${edu.institution} (${edu.startDate} - ${edu.endDate})`,
+      ]).flat(),
+      '',
+      `Skills: ${resume.skills.join(', ')}`,
+    ].join('\n').trim();
 
-Experience:
-${resume.experience.map((exp: any) => `
-- ${exp.position} at ${exp.company} (${exp.startDate} - ${exp.endDate})
-  ${exp.description}
-  Achievements: ${exp.achievements.join(', ')}
-`).join('\n')}
-
-Education:
-${resume.education.map((edu: any) => `
-- ${edu.degree} in ${edu.field} from ${edu.institution} (${edu.startDate} - ${edu.endDate})
-`).join('\n')}
-
-Skills: ${resume.skills.join(', ')}
-    `.trim();
-
-    // Generate cover letter with AI
     const coverLetterContent = await generateCoverLetter(
       resumeContent,
       jobDescription,
@@ -75,7 +74,6 @@ Skills: ${resume.skills.join(', ')}
       tone || 'professional'
     );
 
-    // Save cover letter to database
     const coverLetter = {
       userId: (session.user as any).id,
       resumeId,
@@ -89,7 +87,6 @@ Skills: ${resume.skills.join(', ')}
 
     const result = await db.collection('coverletters').insertOne(coverLetter);
 
-    // Decrement credits for free users
     if (user?.plan === 'free') {
       await db.collection('users').updateOne(
         { _id: new ObjectId((session.user as any).id) },
@@ -97,7 +94,6 @@ Skills: ${resume.skills.join(', ')}
       );
     }
 
-    // Log usage
     await db.collection('usage').insertOne({
       userId: (session.user as any).id,
       type: 'cover_letter',
