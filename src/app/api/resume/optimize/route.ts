@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -31,7 +33,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
     }
 
-    // Check usage limits
     const user = await db.collection('users').findOne({
       _id: new ObjectId((session.user as any).id),
     });
@@ -43,35 +44,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Format resume content for AI
-    const resumeContent = `
-Name: ${resume.personalInfo.fullName}
-Email: ${resume.personalInfo.email}
-Phone: ${resume.personalInfo.phone}
-Location: ${resume.personalInfo.location}
-Summary: ${resume.personalInfo.summary}
+    const resumeContent = [
+      `Name: ${resume.personalInfo.fullName}`,
+      `Email: ${resume.personalInfo.email}`,
+      `Phone: ${resume.personalInfo.phone}`,
+      `Location: ${resume.personalInfo.location}`,
+      `Summary: ${resume.personalInfo.summary}`,
+      '',
+      'Experience:',
+      ...resume.experience.map((exp: any) => [
+        `- ${exp.position} at ${exp.company} (${exp.startDate} - ${exp.endDate})`,
+        `  ${exp.description}`,
+        `  Achievements: ${exp.achievements.join(', ')}`,
+      ]).flat(),
+      '',
+      'Education:',
+      ...resume.education.map((edu: any) => [
+        `- ${edu.degree} in ${edu.field} from ${edu.institution} (${edu.startDate} - ${edu.endDate})`,
+      ]).flat(),
+      '',
+      `Skills: ${resume.skills.join(', ')}`,
+      `Languages: ${resume.languages.join(', ')}`,
+      `Certifications: ${resume.certifications.join(', ')}`,
+    ].join('\n').trim();
 
-Experience:
-${resume.experience.map((exp: any) => `
-- ${exp.position} at ${exp.company} (${exp.startDate} - ${exp.endDate})
-  ${exp.description}
-  Achievements: ${exp.achievements.join(', ')}
-`).join('\n')}
-
-Education:
-${resume.education.map((edu: any) => `
-- ${edu.degree} in ${edu.field} from ${edu.institution} (${edu.startDate} - ${edu.endDate})
-`).join('\n')}
-
-Skills: ${resume.skills.join(', ')}
-Languages: ${resume.languages.join(', ')}
-Certifications: ${resume.certifications.join(', ')}
-    `.trim();
-
-    // Optimize with AI
     const optimizedContent = await optimizeResume(resumeContent, jobDescription);
 
-    // Update resume
     await db.collection('resumes').updateOne(
       { _id: new ObjectId(resumeId) },
       {
@@ -83,7 +81,6 @@ Certifications: ${resume.certifications.join(', ')}
       }
     );
 
-    // Decrement credits for free users
     if (user?.plan === 'free') {
       await db.collection('users').updateOne(
         { _id: new ObjectId((session.user as any).id) },
@@ -91,7 +88,6 @@ Certifications: ${resume.certifications.join(', ')}
       );
     }
 
-    // Log usage
     await db.collection('usage').insertOne({
       userId: (session.user as any).id,
       type: 'resume_optimize',
