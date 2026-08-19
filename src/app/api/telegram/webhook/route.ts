@@ -1,46 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { answerPreCheckoutQuery, parseWebAppData } from '@/lib/telegram';
+import { answerPreCheckoutQuery } from '@/lib/telegram';
 import { connectToDatabase } from '@/lib/mongodb';
+import crypto from 'crypto';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
+const TELEGRAM_WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+function verifySecretToken(request: NextRequest): boolean {
+  if (!TELEGRAM_WEBHOOK_SECRET) return true;
+  const token = request.headers.get('x-telegram-bot-api-secret-token');
+  return token === TELEGRAM_WEBHOOK_SECRET;
+}
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifySecretToken(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
 
-    // Handle pre-checkout query
     if (body.pre_checkout_query) {
-      const { id, from, invoice_payload } = body.pre_checkout_query;
-
-      // Verify the user and payload
+      const { id, from } = body.pre_checkout_query;
       const { db } = await connectToDatabase();
-      const user = await db.collection('users').findOne({
-        telegramId: from.id,
-      });
+      const user = await db.collection('users').findOne({ telegramId: from.id });
 
       if (!user) {
-        await answerPreCheckoutQuery(String(id), false, 'User not found');
+        await answerPreCheckoutQuery(String(id), false, 'User not found. Please link your account first.');
         return NextResponse.json({ success: false });
       }
 
-      // Accept the pre-checkout
       await answerPreCheckoutQuery(String(id), true);
       return NextResponse.json({ success: true });
     }
 
-    // Handle successful payment
     if (body.successful_payment) {
-      const { telegram_id, payment } = body.message || body;
-      const { invoice_payload, total_amount, currency } = body.successful_payment;
+      const telegramId = body.message?.from?.id;
+      const { invoice_payload } = body.successful_payment;
 
-      // Parse the payload to determine the plan
+      if (!telegramId) {
+        return NextResponse.json({ error: 'Missing user info' }, { status: 400 });
+      }
+
       const payloadParts = invoice_payload.split('_');
       const plan = payloadParts[0] || 'pro';
 
-      // Update user plan in database
       const { db } = await connectToDatabase();
       await db.collection('users').updateOne(
-        { telegramId: telegram_id },
+        { telegramId },
         {
           $set: {
             plan,
@@ -50,18 +57,14 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      // Send confirmation message via Telegram API
-      await fetch(
-        `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: telegram_id,
-            text: `✅ Payment successful! You are now on the ${plan.toUpperCase()} plan. Enjoy unlimited resume optimizations!`,
-          }),
-        }
-      );
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: telegramId,
+          text: `Payment successful! You are now on the ${plan.toUpperCase()} plan. Enjoy unlimited resume optimizations!`,
+        }),
+      });
 
       return NextResponse.json({ success: true });
     }
