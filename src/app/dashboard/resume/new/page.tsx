@@ -1,5 +1,9 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
+
+
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -10,7 +14,7 @@ import toast from 'react-hot-toast';
 export default function NewResumePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [resume, setResume] = useState(null);
+  const [resume, setResume] = useState<any>(null);
   const [jobDescription, setJobDescription] = useState('');
   const [optimizing, setOptimizing] = useState(false);
 
