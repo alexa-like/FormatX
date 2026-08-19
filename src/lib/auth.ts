@@ -1,6 +1,7 @@
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
 import { connectToDatabase } from './mongodb';
 
 export const authOptions: NextAuthOptions = {
@@ -23,15 +24,22 @@ export const authOptions: NextAuthOptions = {
         const { db } = await connectToDatabase();
         const user = await db.collection('users').findOne({ email: credentials.email });
 
-        if (user) {
-          return {
-            id: user._id.toString(),
-            email: user.email,
-            name: user.name,
-          };
+        if (!user) {
+          return null;
         }
 
-        return null;
+        if (user.password) {
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isValid) {
+            return null;
+          }
+        }
+
+        return {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name,
+        };
       },
     }),
   ],
