@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -28,35 +30,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
     }
 
-    // Format resume content for AI
-    const resumeContent = `
-Name: ${resume.personalInfo.fullName}
-Email: ${resume.personalInfo.email}
-Phone: ${resume.personalInfo.phone}
-Location: ${resume.personalInfo.location}
-Summary: ${resume.personalInfo.summary}
+    const resumeContent = [
+      `Name: ${resume.personalInfo.fullName}`,
+      `Email: ${resume.personalInfo.email}`,
+      `Phone: ${resume.personalInfo.phone}`,
+      `Location: ${resume.personalInfo.location}`,
+      `Summary: ${resume.personalInfo.summary}`,
+      '',
+      'Experience:',
+      ...resume.experience.map((exp: any) => [
+        `- ${exp.position} at ${exp.company} (${exp.startDate} - ${exp.endDate})`,
+        `  ${exp.description}`,
+        `  Achievements: ${exp.achievements.join(', ')}`,
+      ]).flat(),
+      '',
+      'Education:',
+      ...resume.education.map((edu: any) => [
+        `- ${edu.degree} in ${edu.field} from ${edu.institution} (${edu.startDate} - ${edu.endDate})`,
+      ]).flat(),
+      '',
+      `Skills: ${resume.skills.join(', ')}`,
+      `Languages: ${resume.languages.join(', ')}`,
+      `Certifications: ${resume.certifications.join(', ')}`,
+    ].join('\n').trim();
 
-Experience:
-${resume.experience.map((exp: any) => `
-- ${exp.position} at ${exp.company} (${exp.startDate} - ${exp.endDate})
-  ${exp.description}
-  Achievements: ${exp.achievements.join(', ')}
-`).join('\n')}
-
-Education:
-${resume.education.map((edu: any) => `
-- ${edu.degree} in ${edu.field} from ${edu.institution} (${edu.startDate} - ${edu.endDate})
-`).join('\n')}
-
-Skills: ${resume.skills.join(', ')}
-Languages: ${resume.languages.join(', ')}
-Certifications: ${resume.certifications.join(', ')}
-    `.trim();
-
-    // Check ATS score with AI
     const atsResult = await checkATSScore(resumeContent);
 
-    // Parse the result (expecting JSON)
     let parsedResult;
     try {
       parsedResult = JSON.parse(atsResult);
@@ -64,7 +63,6 @@ Certifications: ${resume.certifications.join(', ')}
       parsedResult = { overall: 75, suggestions: ['Could not parse AI response'] };
     }
 
-    // Update resume with ATS score
     await db.collection('resumes').updateOne(
       { _id: new ObjectId(resumeId) },
       {
@@ -75,7 +73,6 @@ Certifications: ${resume.certifications.join(', ')}
       }
     );
 
-    // Log usage
     await db.collection('usage').insertOne({
       userId: (session.user as any).id,
       type: 'ats_check',
